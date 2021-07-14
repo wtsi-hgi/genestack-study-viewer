@@ -1,9 +1,16 @@
 library("rjson")
 library(tidyverse)
 library(shiny)
+library(DT)
+library(httr)
 
 choices = list()
-json_file <- fromJSON(file = "test4.json")
+
+r <-GET('https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies', add_headers(accept =  'application/json',
+                                                                                                               `Genestack-API-Token` = 'REDACTED'))
+json_file <- content(r)
+
+#json_file <- fromJSON(file = "test4.json")
 for (i in 1:length(json_file["data"][[1]])){
     choices[[paste(json_file["data"][[1]][[i]][["Study Title"]]," (",json_file["data"][[1]][[i]][["genestack:accession"]],")", sep = "")]] <- i
 }

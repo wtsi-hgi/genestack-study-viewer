@@ -23,6 +23,7 @@ options(DT.options = list(pageLength = 50))
 
 #formats the json file so it can be placed into the table and look correct
 format_json <- function(study_number) {
+    # gets the correct study based on the proivided index of the desired study.
     json_file <- (json_file["data"][[1]][[as.integer(study_number)]])
     json_data_frame = map(json_file, ~ str_c(., collapse = "<br>")) %>% as_tibble
     transposed = as_tibble(cbind(nms = names(json_data_frame), t(json_data_frame)))

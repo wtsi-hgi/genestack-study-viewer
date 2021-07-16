@@ -1,6 +1,7 @@
 library("rjson")
 library(tidyverse)
 library(shiny)
+library(shinyWidgets)
 library(DT)
 library(httr)
 
@@ -10,10 +11,10 @@ choices = list()
 # makes the API call, needs key to be added to work
 r <-GET('https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies', add_headers(accept =  'application/json',
                                                                                                                `Genestack-API-Token` = 'REDACTED'))
-# takes contents of call and assigns it to variable, call returns a json by defualt which is what we want to use.
+# takes contents of call and assigns it to variable, call returns a json by default which is what we want to use.
 json_file <- content(r)
 
-# seperates the json file into its seperate studies by assigning it a number based on its index
+# separates the json file into its separate studies by assigning it a number based on its index
 for (i in 1:length(json_file["data"][[1]])){
     choices[[paste(json_file["data"][[1]][[i]][["Study Title"]]," (",json_file["data"][[1]][[i]][["genestack:accession"]],")", sep = "")]] <- i
 }
@@ -23,7 +24,7 @@ options(DT.options = list(pageLength = 50))
 
 #formats the json file so it can be placed into the table and look correct
 format_json <- function(study_number) {
-    # gets the correct study based on the proivided index of the desired study.
+    # gets the correct study based on the provided index of the desired study.
     json_file <- (json_file["data"][[1]][[as.integer(study_number)]])
     json_data_frame = map(json_file, ~ str_c(., collapse = "<br>")) %>% as_tibble
     transposed = as_tibble(cbind(nms = names(json_data_frame), t(json_data_frame)))
@@ -31,7 +32,78 @@ format_json <- function(study_number) {
 }
 
 
+search_json <- function(searched_word){
+    # the main data frame that we will output
+    data_frame<- data.frame()
+    # a storage data frame we can remake so we can append it to the end of the main data frame.
+    temp_data_frame = data.frame()
+    # loops through all the studies 
+    for (i in 1:length(json_file["data"][[1]])){
+        # stores our data that we want to add to the data frame
+        data_temp = list()
+        # loops through each line in the study
+        for (j in 1:length(json_file["data"][[1]][[i]])){
+            # if that line is null then ignore it 
+            if (!is.null(json_file["data"][[1]][[i]][[j]])){
+                # variables to organize the array to make it easier to read now we are at the point we want to use it
+                data = json_file["data"][[1]][[i]][[j]]
+                title = json_file["data"][[1]][[i]][["Study Title"]]
+                # if the line is not an array (has multiple lines of data inside it like location)
+                if (!is.list(data)){
+                    # if the word we are searching for is in the data
+                    if (grepl( toupper(searched_word), toupper(data), fixed = TRUE)){
+                        # if the data is not a duplicate 
+                        if (!(data %in% data_temp)){
+                            # add that line of data to the data list
+                            data_temp = c(data,data_temp)
+                        }
+                    }
+                }
+                # if the data does have another array inside it
+                else{
+                    # loop through that array 
+                    for (k in 1:length(data)){
+                        # if the word we are searching for is in the data
+                        if (grepl( toupper(searched_word), toupper(data[[k]]), fixed = TRUE)){
+                            # if the data is not a duplicate 
+                            if (!(data[[k]] %in% data_temp)){
+                                # add that line of data to the data list
+                                data_temp = c(data[[k]],data_temp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        # if there is any data in the list
+        if (length(data_temp) != 0){
+            # make a data frame 
+            temp_data_frame = data.frame(
+                # save the data to it 
+                Study_title = c(title),
+                Study_data = c(str_c(data_temp, collapse = "<br>")),
+                stringsAsFactors = FALSE
+            )
+            # append it to the main data frame
+            data_frame <- rbind(temp_data_frame,data_frame)
+        }
+    }
+    return(data_frame)
+}
+
+
+
+
 ui <- fluidPage(
+    searchInput(
+        inputId = "search", label = "Seach for metadata",
+        placeholder = NULL,
+        btnSearch = icon("search"),
+        btnReset = icon("remove"),
+        width = "450px"
+    ),
+    DT::dataTableOutput("mymetatable"), 
+    
     selectInput("select", label = h3("Projects"), 
                 choices,  
                 selected = 1),
@@ -42,6 +114,28 @@ ui <- fluidPage(
 
 
 server <- function(input, output) {
+    observeEvent(input$search, {
+        # if the input isn't empty then continue as grep breaks if it tries to search for an empty string
+        if (input$search != ""){
+            # searchs through the data and formats it
+            transposed = search_json(input$search)
+            # tells the table what to render and how
+            output$mytable = DT::renderDataTable({
+                sketch<-htmltools::withTags(table(
+                    tableHeader(transposed,escape=F
+                    )))
+                thing = DT::datatable(
+                    transposed
+                    ,rownames = FALSE
+                    ,container = sketch,escape=F
+                )
+                return(thing)
+            })
+        }
+    })
+    
+    
+    
     #updates whenever the select box is changed and passes the index of the data that needs to be formatted 
     observeEvent(input$select, {
         # formats the data

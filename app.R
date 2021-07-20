@@ -7,6 +7,8 @@ library(httr)
 
 # empty list of studies that can be selected from, this is updated from the API call
 choices = list()
+# a hash which contains the titles linked to their index
+title_to_index <- list()
 
 # makes the API call, needs key to be added to work
 r <-GET('https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies', add_headers(accept =  'application/json',
@@ -17,6 +19,8 @@ json_file <- content(r)
 # separates the json file into its separate studies by assigning it a number based on its index
 for (i in 1:length(json_file["data"][[1]])){
     choices[[paste(json_file["data"][[1]][[i]][["Study Title"]]," (",json_file["data"][[1]][[i]][["genestack:accession"]],")", sep = "")]] <- i
+    # fills in the index hash
+    title_to_index[[json_file["data"][[1]][[i]][["Study Title"]]]] <- i
 }
 
 # sets the default number of rows to 50 so that all of the data will be shown 
@@ -95,51 +99,80 @@ search_json <- function(searched_word){
 
 
 ui <- fluidPage(
-    searchInput(
-        inputId = "search", label = "Seach for metadata",
-        placeholder = NULL,
-        btnSearch = icon("search"),
-        btnReset = icon("remove"),
-        width = "450px"
+    # makes everything inside next to each other as a row
+    flowLayout(
+        # input box
+        selectInput("select", label = ("Projects"), 
+                    choices,  
+                    selected = 1),
+        # search box
+        searchInput(
+            inputId = "search", label = "Seach for metadata",
+            placeholder = NULL,
+            btnSearch = icon("search"),
+            btnReset = icon("remove"),
+            width = "450px"
+        )
     ),
+    # the two tables
     DT::dataTableOutput("mymetatable"), 
-    
-    selectInput("select", label = h3("Projects"), 
-                choices,  
-                selected = 1),
-    
-    DT::dataTableOutput("mytable") 
-    
+    DT::dataTableOutput("mytable")
 )
 
 
 server <- function(input, output) {
+    # stores a copy of the table so it can be accessed later
+    global_store <- reactiveVal(NULL)
     observeEvent(input$search, {
         # if the input isn't empty then continue as grep breaks if it tries to search for an empty string
         if (input$search != ""){
-            # searchs through the data and formats it
+            # search through the data and formats it
             transposed = search_json(input$search)
-            # tells the table what to render and how
-            output$mytable = DT::renderDataTable({
-                sketch<-htmltools::withTags(table(
-                    tableHeader(transposed,escape=F
-                    )))
-                thing = DT::datatable(
-                    transposed
-                    ,rownames = FALSE
-                    ,container = sketch,escape=F
-                )
-                return(thing)
-            })
+            
+            # if the table isn't empty
+            if (nrow(transposed) != 0) {
+                # updates the store
+                global_store(transposed[1])
+                # tells the table what to render and how
+                output$mymetatable = DT::renderDataTable(
+                    selection = list(mode = "single", target = "cell"),
+                    {
+                    sketch<-htmltools::withTags(table(
+                        tableHeader(transposed,escape=F
+                        )))
+                    
+                    thing = DT::datatable(
+                        transposed
+                        ,rownames = FALSE
+                        ,container = sketch,escape=F
+                    )
+                    return(thing)
+                })
+            }
         }
     })
-    
+    # runs whenever a row is clicked
+    observeEvent(input$mymetatable_row_last_clicked, {
+        # stores the title of the last row clicked
+        clicked = input$mymetatable_row_last_clicked
+        # converts the title to the correct index using the hash
+        index = (title_to_index[[global_store()[[1]][[clicked]]]])
+        # updates the selection box to show the new choice
+        updateSelectInput(
+            session = getDefaultReactiveDomain(),
+            "select",
+            label = ("Projects"),
+            choices = choices,
+            selected = index
+        )
+    })
     
     
     #updates whenever the select box is changed and passes the index of the data that needs to be formatted 
     observeEvent(input$select, {
         # formats the data
         transposed = format_json(input$select)
+        colnames(transposed) <- c("key","value")
         # tells the table what to render and how
         output$mytable = DT::renderDataTable({
             sketch<-htmltools::withTags(table(

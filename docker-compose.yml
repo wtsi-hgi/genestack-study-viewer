@@ -1,0 +1,7 @@
+version: "3.9"
+
+services: 
+    studies-service:
+        build: .
+        ports: 
+            - 3838:3838  

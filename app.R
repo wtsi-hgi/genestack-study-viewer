@@ -10,11 +10,23 @@ choices = list()
 # a hash which contains the titles linked to their index
 title_to_index <- list()
 
+file_name = "api-key.txt"
+api_key <-readChar(file_name, file.info(file_name)$size)
+
 # makes the API call, needs key to be added to work
 r <-GET('https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies', add_headers(accept =  'application/json',
-                                                                                                               `Genestack-API-Token` = 'REDACTED'))
+                                                                                                               `Genestack-API-Token` = api_key))
+
+
 # takes contents of call and assigns it to variable, call returns a json by default which is what we want to use.
 json_file <- content(r)
+
+
+if (length(json_file) == 1){
+    print(json_file)
+    quit(status=1)
+}
+
 
 # separates the json file into its separate studies by assigning it a number based on its index
 for (i in 1:length(json_file["data"][[1]])){
@@ -35,7 +47,7 @@ format_json <- function(study_number) {
     return(transposed)
 }
 
-
+# search's a json file for selected word
 search_json <- function(searched_word){
     # the main data frame that we will output
     data_frame<- data.frame()

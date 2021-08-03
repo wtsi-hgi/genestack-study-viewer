@@ -5,6 +5,9 @@ library(shinyWidgets)
 library(DT)
 library(httr)
 library(curl)
+
+source("helpers.R")
+
 httr::set_config(httr::config(http_version = 1))
 
 # empty list of studies that can be selected from, this is updated from the API call
@@ -28,10 +31,6 @@ json_file <- content(r)
 if (length(json_file) == 1){
     print(json_file)
     quit(status=1)
-}
-
-format_title <- function(study) {
-    return(paste(study["Study Title"], "-", study["genestack:accession"]))
 }
 
 # separates the json file into its separate studies by assigning it a number based on its index
@@ -117,8 +116,6 @@ search_json <- function(searched_word){
     return(data_frame)
 }
 
-print(choices)
-
 ui <- fluidPage(
     titlePanel("Genestack Study Viewer"),
     
@@ -139,20 +136,21 @@ ui <- fluidPage(
                 btnSearch = icon("search"),
                 btnReset = icon("remove"),
                 width = "450px"
-            )
+            ),
+
+            dataTableOutput("search_results")
         ),
 
         mainPanel(
             # Data Tables
-            DT::dataTableOutput("mymetatable"), 
-            dataTableOutput("study-meta")
+            dataTableOutput("study_meta")
         )
 
     )
 )
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     # stores a copy of the table so it can be accessed later
     global_store <- reactiveVal(NULL)
     observeEvent(input$search, {
@@ -166,35 +164,37 @@ server <- function(input, output) {
                 # updates the store
                 global_store(transposed[1])
                 # tells the table what to render and how
-                output$mymetatable = DT::renderDataTable(
-                    selection = list(mode = "single", target = "cell"),
-                    {
-                    sketch<-htmltools::withTags(table(
-                        tableHeader(transposed,escape=F
-                        )))
-                    
-                    thing = DT::datatable(
-                        transposed
-                        ,rownames = FALSE
-                        ,container = sketch,escape=F
+                output$search_results = renderDataTable({
+                    return(
+                        datatable(
+                            transposed["Study_title"],
+                            options = list(
+                                "searching" = FALSE,
+                                "lengthChange" = FALSE,
+                                "paging" = FALSE
+                            ),
+                            rownames = FALSE,
+                            colnames = c("Study Title"),
+                            selection = "single",
+
+                            # TODO: See other escape TODO
+                            escape = FALSE
+                        )
                     )
-                    return(thing)
                 })
             }
         }
     })
+    
     # runs whenever a row is clicked
-    observeEvent(input$mymetatable_row_last_clicked, {
-        # stores the title of the last row clicked
-        clicked = input$mymetatable_row_last_clicked
-        # converts the title to the correct index using the hash
+    observeEvent(input$search_results_rows_selected, {
+        clicked = input$search_results_rows_selected
         index = (title_to_index[[global_store()[[1]][[clicked]]]])
+        
         # updates the selection box to show the new choice
         updateSelectInput(
-            session = getDefaultReactiveDomain(),
+            session = session,
             "select",
-            label = ("Projects"),
-            choices = choices,
             selected = index
         )
     })
@@ -211,7 +211,7 @@ server <- function(input, output) {
         # Transpose and put the key/value data into the UI table
         transposed = format_json(input$select)
         colnames(transposed) <- c("key","value")
-        output$`study-meta` = renderDataTable({
+        output$study_meta = renderDataTable({
             return(
                 datatable(
                     transposed,

@@ -15,17 +15,8 @@ choices = list("Please select..." = 0)
 # a hash which contains the titles linked to their index
 title_to_index <- list()
 
-# makes the API call, needs key to be added to work
-r <- GET(
-    'https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies',
-    add_headers(
-        accept = 'application/json',
-        `Genestack-API-Token` = Sys.getenv("API_KEY")
-    )
-)
-
-# takes contents of call and assigns it to variable, call returns a json by default which is what we want to use.
-json_file <- content(r)
+# API Call for all Studies Endpoint
+json_file <- genestack_api_call("studyUser", "studies")
 
 
 if (length(json_file) == 1){
@@ -190,7 +181,7 @@ server <- function(input, output, session) {
     observeEvent(input$search_results_rows_selected, {
         clicked = input$search_results_rows_selected
         index = (title_to_index[[global_store()[[1]][[clicked]]]])
-        
+
         # updates the selection box to show the new choice
         updateSelectInput(
             session = session,

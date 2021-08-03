@@ -220,6 +220,30 @@ server <- function(input, output, session) {
             )
             
         })
+
+        # Deal with all the additonal study data
+        # 1. Get the Study ID
+        study_id <- filter(transposed, key == "genestack:accession")[["value"]]
+
+        # 2. Get the Additional Data
+        add_data <- get_study_additional_data(study_id)
+
+        # 3. Summarise 
+        data_types <- c()
+        data_descrs <- c()
+
+        for (type in names(add_data)) {
+            if (is.list(add_data[type])) {
+                for (data_part in add_data[type]) {
+                    data_types <- append(data_types, type)
+                    data_descrs <- append(data_descrs, data_part$`metadata`$`Description`)
+                }
+            }
+        }
+
+        summary_table <- data.frame(data_types, data_descrs)
+        print(summary_table)
+
     })
 }
 

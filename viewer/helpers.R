@@ -20,24 +20,27 @@ genestack_api_call <- function(user, endpoint) {
             `Genestack-API-Token` = Sys.getenv("API_KEY")
         )
     )
-    return(content(req))
+
+    if (length(content(req)) != 0) {
+        return(content(req))
+    }
+    return(FALSE)
 }
 
 get_study_additional_data <- function(study_id) {
     endpoints = c("expression", "variant")
+    rtn_data = list()
     for (endpoint in endpoints) {
-        print(endpoint)
-        print(
-            genestack_api_call(
-                "integrationUser",
-                paste(
-                    "integration/link/",
-                    endpoint,
-                    "/group/by/study/",
-                    study_id,
-                    sep=""
-                )
+        rtn_data[endpoint] <- genestack_api_call(
+            "integrationUser",
+            paste(
+                "integration/link/",
+                endpoint,
+                "/group/by/study/",
+                study_id,
+                sep=""
             )
         )
     }
+    return(rtn_data)
 }

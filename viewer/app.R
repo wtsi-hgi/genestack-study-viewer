@@ -145,7 +145,7 @@ ui <- fluidPage(
         mainPanel(
             # Data Tables
             DT::dataTableOutput("mymetatable"), 
-            DT::dataTableOutput("mytable")    
+            dataTableOutput("study-meta")
         )
 
     )
@@ -208,20 +208,26 @@ server <- function(input, output) {
             return(NULL)
         }
 
-        # formats the data
+        # Transpose and put the key/value data into the UI table
         transposed = format_json(input$select)
         colnames(transposed) <- c("key","value")
-        # tells the table what to render and how
-        output$mytable = DT::renderDataTable({
-            sketch<-htmltools::withTags(table(
-                tableHeader(transposed,escape=F
-                )))
-            thing = DT::datatable(
-                transposed
-                ,rownames = FALSE
-                ,container = sketch,escape=F
+        output$`study-meta` = renderDataTable({
+            return(
+                datatable(
+                    transposed,
+                    options = list(
+                        "searching" = FALSE,
+                        "lengthChange" = FALSE,
+                        "paging" = FALSE
+                    ),
+                    rownames = FALSE,
+
+                    # This allows line breaks (<br>), but could allow XSS
+                    # TODO: Better way of doing line breaks
+                    escape = FALSE
+                )
             )
-            return(thing)
+            
         })
     })
 }

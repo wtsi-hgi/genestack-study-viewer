@@ -8,7 +8,7 @@ library(curl)
 httr::set_config(httr::config(http_version = 1))
 
 # empty list of studies that can be selected from, this is updated from the API call
-choices = list()
+choices = list("Please select..." = 0)
 # a hash which contains the titles linked to their index
 title_to_index <- list()
 
@@ -30,10 +30,13 @@ if (length(json_file) == 1){
     quit(status=1)
 }
 
+format_title <- function(study) {
+    return(paste(study["Study Title"], "-", study["genestack:accession"]))
+}
 
 # separates the json file into its separate studies by assigning it a number based on its index
 for (i in 1:length(json_file["data"][[1]])){
-    choices[[paste(json_file["data"][[1]][[i]][["Study Title"]]," (",json_file["data"][[1]][[i]][["genestack:accession"]],")", sep = "")]] <- i
+    choices[[format_title(json_file["data"][[1]][[i]])]] <- i
     # fills in the index hash
     title_to_index[[json_file["data"][[1]][[i]][["Study Title"]]]] <- i
 }
@@ -114,28 +117,38 @@ search_json <- function(searched_word){
     return(data_frame)
 }
 
-
-
+print(choices)
 
 ui <- fluidPage(
-    # makes everything inside next to each other as a row
-    flowLayout(
-        # input box
-        selectInput("select", label = ("Projects"), 
-                    choices,  
-                    selected = 1),
-        # search box
-        searchInput(
-            inputId = "search", label = "Seach for metadata",
-            placeholder = NULL,
-            btnSearch = icon("search"),
-            btnReset = icon("remove"),
-            width = "450px"
+    titlePanel("Genestack Study Viewer"),
+    
+    sidebarLayout(
+        sidebarPanel(
+            # Inputs
+            selectInput(
+                inputId = "select",
+                label = "Projects",
+                choices,
+                selected = 0
+            ),
+            
+            searchInput(
+                inputId = "search",
+                label = "Search Metadata",
+                placeholder = NULL,
+                btnSearch = icon("search"),
+                btnReset = icon("remove"),
+                width = "450px"
+            )
+        ),
+
+        mainPanel(
+            # Data Tables
+            DT::dataTableOutput("mymetatable"), 
+            DT::dataTableOutput("mytable")    
         )
-    ),
-    # the two tables
-    DT::dataTableOutput("mymetatable"), 
-    DT::dataTableOutput("mytable")
+
+    )
 )
 
 
@@ -189,6 +202,12 @@ server <- function(input, output) {
     
     #updates whenever the select box is changed and passes the index of the data that needs to be formatted 
     observeEvent(input$select, {
+        
+        if (input$select == 0) {
+            # "Please Select" Option
+            return(NULL)
+        }
+
         # formats the data
         transposed = format_json(input$select)
         colnames(transposed) <- c("key","value")

@@ -12,13 +12,14 @@ choices = list()
 # a hash which contains the titles linked to their index
 title_to_index <- list()
 
-file_name = "api-key.txt"
-api_key <-readChar(file_name, file.info(file_name)$size)
-
 # makes the API call, needs key to be added to work
-r <-GET('https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies', add_headers(accept =  'application/json',
-                                                                                                               `Genestack-API-Token` = api_key))
-
+r <- GET(
+    'https://genestack.sanger.ac.uk/frontend/rs/genestack/studyUser/default-released/studies',
+    add_headers(
+        accept = 'application/json',
+        `Genestack-API-Token` = Sys.getenv("API_KEY")
+    )
+)
 
 # takes contents of call and assigns it to variable, call returns a json by default which is what we want to use.
 json_file <- content(r)

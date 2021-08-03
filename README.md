@@ -5,3 +5,9 @@ Provides a searchable list of studies to access and a table to display the metad
 Also provides the options to search for a specific value in the metadata and returns which projects contain this data.
 The rows on this table can be selected to display the related study on the study table.
 Users must be connected to the sanger VPN for the API calls to be accepted.
+
+## Running
+
+- Copy `.env.example` to `.env`
+- Add a Genestack API Token to `.env`
+- Run `docker-compose up`

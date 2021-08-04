@@ -129,12 +129,16 @@ ui <- fluidPage(
                 width = "450px"
             ),
 
-            dataTableOutput("search_results")
+            dataTableOutput("search_results"),
+            br(),
+            dataTableOutput("additional_summary")
         ),
 
         mainPanel(
             # Data Tables
-            dataTableOutput("study_meta")
+            dataTableOutput("study_meta"),
+            br(),
+            dataTableOutput("additional_meta")
         )
 
     )
@@ -159,13 +163,14 @@ server <- function(input, output, session) {
                     return(
                         datatable(
                             transposed["Study_title"],
+                            caption = "Search Results",
                             options = list(
                                 "searching" = FALSE,
                                 "lengthChange" = FALSE,
                                 "paging" = FALSE
                             ),
                             rownames = FALSE,
-                            colnames = c("Study Title"),
+                            colnames = NULL,
                             selection = "single",
 
                             # TODO: See other escape TODO
@@ -206,6 +211,7 @@ server <- function(input, output, session) {
             return(
                 datatable(
                     transposed,
+                    caption = "Study Data",
                     options = list(
                         "searching" = FALSE,
                         "lengthChange" = FALSE,
@@ -235,14 +241,30 @@ server <- function(input, output, session) {
         for (type in names(add_data)) {
             if (is.list(add_data[type])) {
                 for (data_part in add_data[[type]]) {
-                    data_types <- append(data_types, type)
+                    data_types <- append(data_types, str_to_title(type))
                     data_descrs <- append(data_descrs, data_part[["metadata"]][["Description"]])
                 }
             }
         }
 
+        # 4. Make the Nice Summary Table
         summary_table <- data.frame(data_types, data_descrs)
-        print(summary_table)
+        output$additional_summary = renderDataTable({
+            return(
+                datatable(
+                    summary_table,
+                    caption = "Available Additional Data",
+                    options = list(
+                        "searching" = FALSE,
+                        "lengthChange" = FALSE,
+                        "paging" = FALSE
+                    ),
+                    selection = "single",
+                    rownames = FALSE,
+                    colnames = c("", "Description")
+                )
+            )
+        })
 
     })
 }

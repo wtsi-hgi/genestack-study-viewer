@@ -7,6 +7,19 @@ format_title <- function(study) {
     return(paste(study["Study Title"], "-", study["genestack:accession"]))
 }
 
+accessions_to_titles <- function(accessions, study_data) {
+    titles <- c()
+    for (accession in accessions) {
+        for (study in study_data[["data"]]) {
+            if (study[["genestack:accession"]] == accession) {
+                titles <- append(titles, study[["Study Title"]])
+                break
+            }
+        }
+    }
+    return(data.frame(titles))
+}
+
 # Change list of key:value pairs (value can be any datatype) to dataframe
 format_json <- function(json_data) {
     json_data_frame = map(json_data, ~ str_c(., collapse = "<br>")) %>% as_tibble
@@ -64,7 +77,7 @@ get_study_additional_data <- function(study_id) {
 
 search_studies <- function(query, study_additional_data) {
 
-    studies = c()
+    studies <- c()
 
     # Firstly, straight up search Studies
     results <- genestack_api_call(
@@ -77,7 +90,7 @@ search_studies <- function(query, study_additional_data) {
     )[["data"]]
 
     for (study in results) {
-        studies = append(studies, study[["Study Title"]])
+        studies <- append(studies, study[["genestack:accession"]])
     }
 
     # Next, search additional datasets
@@ -100,13 +113,15 @@ search_studies <- function(query, study_additional_data) {
         )[["data"]]
 
         # We now need to find what study/studies this is associated to
-        for (item in results){
+        for (item in results) { # item is each result from the search
             itemId <- item[["itemId"]]
-            for (study in names(study_additional_data)) {
-                if (study == endpoint[2]) {
-                    for (data in study_additional_data[[study]]) {
-                        if (data[[itemId]] == itemId) {
-                            studies = append(studies, study)
+            for (study in names(study_additional_data)) { # study should be genestack:accession
+                for (type in names(study_additional_data[[study]])) { # type should be variant | expression
+                    if (type == endpoint[2]) {
+                        for (data in study_additional_data[[study]][[type]]) { # data will be each extra bit associated to a study
+                            if (data[["itemId"]] == itemId) {
+                                studies = append(studies, study)
+                            }
                         }
                     }
                 }
@@ -114,9 +129,5 @@ search_studies <- function(query, study_additional_data) {
         }
     }
 
-    return(
-        data.frame(
-            studies
-        )
-    )
+    return(studies)
 }

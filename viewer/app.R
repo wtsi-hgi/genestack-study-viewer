@@ -84,7 +84,7 @@ server <- function(input, output, session) {
     for (i in 1:length(study_data[["data"]])) {
         select_choices[[format_title(study_data[["data"]][[i]])]] <- i
         title_to_index[[study_data[["data"]][[i]][["Study Title"]]]] <- i
-        full_data[[study_data[["data"]][[i]][["Study Title"]]]] <- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
+        full_data[[study_data[["data"]][[i]][["genestack:accession"]]]] <- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
     }
 
     updateSelectInput(
@@ -99,7 +99,7 @@ server <- function(input, output, session) {
 
     observeEvent(input$search, {
         if (input$search != ""){
-            results = search_studies(input$search, full_data)
+            results = accessions_to_titles(search_studies(input$search, full_data), study_data)
             if (nrow(results) != 0) {
                 global_store(results[1])
                 output$search_results = renderDataTable({

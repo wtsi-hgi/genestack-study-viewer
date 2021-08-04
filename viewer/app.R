@@ -44,6 +44,7 @@ ui <- fluidPage(
                 width = "450px"
             ),
 
+            textOutput("no_results"),
             dataTableOutput("search_results"),
             br(),
             dataTableOutput("additional_summary")
@@ -113,6 +114,10 @@ server <- function(input, output, session) {
                         )
                     )
                 })
+                output$no_results = NULL
+            } else {
+                output$search_results = NULL
+                output$no_results = renderText({"No Search Results"})
             }
         }
     })
@@ -147,7 +152,7 @@ server <- function(input, output, session) {
                 datatable(
                     transposed,
                     caption = "Study Data",
-                    
+                    rownames = FALSE,
 
                     # This allows line breaks (<br>), but could allow XSS
                     # TODO: Better way of doing line breaks

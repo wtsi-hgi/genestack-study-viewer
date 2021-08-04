@@ -34,13 +34,10 @@ for (i in 1:length(json_file["data"][[1]])){
 # sets the default number of rows to 50 so that all of the data will be shown 
 options(DT.options = list(pageLength = 50))
 
-#formats the json file so it can be placed into the table and look correct
-format_json <- function(study_number) {
-    # gets the correct study based on the provided index of the desired study.
-    json_file <- (json_file["data"][[1]][[as.integer(study_number)]])
-    json_data_frame = map(json_file, ~ str_c(., collapse = "<br>")) %>% as_tibble
-    transposed = as_tibble(cbind(nms = names(json_data_frame), t(json_data_frame)))
-    return(transposed)
+# TODO: Make this pure and move to helpers.R
+find_study <- function(study_number) {
+    temp_json <- (json_file["data"][[1]][[as.integer(study_number)]])
+    return(format_json(temp_json))
 }
 
 # search's a json file for selected word
@@ -148,6 +145,10 @@ ui <- fluidPage(
 server <- function(input, output, session) {
     # stores a copy of the table so it can be accessed later
     global_store <- reactiveVal(NULL)
+
+    add_data <- list()
+    summary_table <- data.frame()
+
     observeEvent(input$search, {
         # if the input isn't empty then continue as grep breaks if it tries to search for an empty string
         if (input$search != ""){
@@ -205,7 +206,7 @@ server <- function(input, output, session) {
         }
 
         # Transpose and put the key/value data into the UI table
-        transposed = format_json(input$select)
+        transposed = find_study(input$select)
         colnames(transposed) <- c("key","value")
         output$study_meta = renderDataTable({
             return(
@@ -232,27 +233,30 @@ server <- function(input, output, session) {
         study_id <- filter(transposed, key == "genestack:accession")[["value"]]
 
         # 2. Get the Additional Data
-        add_data <- get_study_additional_data(study_id)
+        add_data <<- get_study_additional_data(study_id)
 
         # 3. Summarise 
         data_types <- c()
         data_descrs <- c()
+        data_ids <- c()
 
         for (type in names(add_data)) {
             if (is.list(add_data[type])) {
                 for (data_part in add_data[[type]]) {
                     data_types <- append(data_types, str_to_title(type))
                     data_descrs <- append(data_descrs, data_part[["metadata"]][["Description"]])
+                    data_ids <- append(data_ids, data_part[["itemId"]])
                 }
             }
         }
 
         # 4. Make the Nice Summary Table
-        summary_table <- data.frame(data_types, data_descrs)
+        summary_table <<- data.frame(data_types, data_descrs, data_ids)
         output$additional_summary = renderDataTable({
             return(
                 datatable(
-                    summary_table,
+                    # TODO - This throws an error if no data available - it shouldn't
+                    summary_table[1:2],
                     caption = "Available Additional Data",
                     options = list(
                         "searching" = FALSE,
@@ -262,6 +266,40 @@ server <- function(input, output, session) {
                     selection = "single",
                     rownames = FALSE,
                     colnames = c("", "Description")
+                )
+            )
+        })
+
+        # Hide the Old Additional Data
+        output$additional_meta = NULL
+
+    })
+
+    # Display Additional Data When Requested
+    observeEvent(input$additional_summary_rows_selected, {
+        # 1. Get the ID of the data we want
+        clicked = input$additional_summary_rows_selected
+        req_id <- summary_table[clicked,][["data_ids"]]
+        req_type <- tolower(summary_table[clicked,][["data_types"]])
+
+        # 2. Get all of the neccesary data
+        data_form <- add_data[[req_type]]
+        requested_data <- format_json(Filter(function(elem) elem[["itemId"]] == req_id, data_form)[[1]][["metadata"]])
+        colnames(requested_data) <- c("key", "value")
+
+        # 3. Put the metadata in the Shiny table
+        output$additional_meta = renderDataTable({
+            return(
+                datatable(
+                    requested_data,
+                    caption = "Additional Data",
+                    options = list(
+                        "searching" = FALSE,
+                        "lengthChange" = FALSE,
+                        "paging" = FALSE
+                    ),
+                    rownames = FALSE,
+                    escape = FALSE # Same issue here as other places
                 )
             )
         })

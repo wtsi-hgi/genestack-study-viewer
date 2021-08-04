@@ -6,6 +6,13 @@ format_title <- function(study) {
     return(paste(study["Study Title"], "-", study["genestack:accession"]))
 }
 
+# Change list of key:value pairs (value can be any datatype) to dataframe
+format_json <- function(json_data) {
+    json_data_frame = map(json_data, ~ str_c(., collapse = "<br>")) %>% as_tibble
+    transposed = as_tibble(cbind(nms = names(json_data_frame), t(json_data_frame)))
+    return(transposed)
+}
+
 genestack_api_call <- function(user, endpoint) {
     req <- GET(
         paste(

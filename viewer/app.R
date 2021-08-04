@@ -234,9 +234,9 @@ server <- function(input, output, session) {
 
         for (type in names(add_data)) {
             if (is.list(add_data[type])) {
-                for (data_part in add_data[type]) {
+                for (data_part in add_data[[type]]) {
                     data_types <- append(data_types, type)
-                    data_descrs <- append(data_descrs, data_part$`metadata`$`Description`)
+                    data_descrs <- append(data_descrs, data_part[["metadata"]][["Description"]])
                 }
             }
         }

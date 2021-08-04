@@ -24,14 +24,14 @@ genestack_api_call <- function(user, endpoint) {
     if (length(content(req)) != 0) {
         return(content(req))
     }
-    return(FALSE)
+    return(NULL)
 }
 
 get_study_additional_data <- function(study_id) {
     endpoints = c("expression", "variant")
     rtn_data = list()
     for (endpoint in endpoints) {
-        rtn_data[endpoint] <- genestack_api_call(
+        rtn_data[[endpoint]] <- genestack_api_call(
             "integrationUser",
             paste(
                 "integration/link/",

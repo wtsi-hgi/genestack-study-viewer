@@ -61,3 +61,26 @@ get_study_additional_data <- function(study_id) {
     }
     return(rtn_data)
 }
+
+search_studies <- function(query) {
+    results <- genestack_api_call(
+        "studyUser",
+        paste(
+            "studies?searchSpecificTerms=true&query=",
+            query,
+            sep=""
+        )
+    )[["data"]]
+
+    titles <- c()
+
+    for (result in results) {
+        titles <- append(titles, result[["Study Title"]])
+    }
+
+    return(
+        data.frame(
+            titles
+        )
+    )
+}

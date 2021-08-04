@@ -13,70 +13,6 @@ httr::set_config(httr::config(http_version = 1))
 # sets the default number of rows to 50 so that all of the data will be shown 
 options(DT.options = list(pageLength = 50))
 
-# search's a json file for selected word
-search_json <- function(searched_word){
-    # the main data frame that we will output
-    data_frame<- data.frame()
-    # a storage data frame we can remake so we can append it to the end of the main data frame.
-    temp_data_frame = data.frame()
-    # loops through all the studies
-    for (i in 1:length(json_file["data"][[1]])){
-        # stores our data that we want to add to the data frame
-        data_temp = list()
-        # loops through each line in the study
-        for (j in 1:length(json_file["data"][[1]][[i]])){
-            # if that line is null then ignore it
-            if (!is.null(json_file["data"][[1]][[i]][[j]])){
-                # variables to organize the array to make it easier to read now we are at the point we want to use it
-                data = json_file["data"][[1]][[i]][[j]]
-                title = json_file["data"][[1]][[i]][["Study Title"]]
-                # if the line is not an array (has multiple lines of data inside it like location)
-                if (!is.list(data)){
-                    if (!is.null(data)){
-                        # if the word we are searching for is in the data
-                        if (grepl( toupper(searched_word), toupper(data), fixed = TRUE)){
-                            # if the data is not a duplicate
-                            if (!(data %in% data_temp)){
-                                # add that line of data to the data list
-                                data_temp = c(data,data_temp)
-                            }
-                        }
-                    }
-                }
-                # if the data does have another array inside it
-                else{
-                    # loop through that array
-                    for (k in 1:length(data)){
-                        # if the word we are searching for is in the data
-                        if (!is.null(data[[k]])){
-                            if (grepl( toupper(searched_word), toupper(data[[k]]), fixed = TRUE)){
-                                # if the data is not a duplicate
-                                if (!(data[[k]] %in% data_temp)){
-                                    # add that line of data to the data list
-                                    data_temp = c(data[[k]],data_temp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        # if there is any data in the list
-        if (length(data_temp) != 0){
-            # make a data frame
-            temp_data_frame = data.frame(
-                # save the data to it
-                Study_title = c(title),
-                Study_data = c(str_c(data_temp, collapse = "<br>")),
-                stringsAsFactors = FALSE
-            )
-            # append it to the main data frame
-            data_frame <- rbind(temp_data_frame,data_frame)
-        }
-    }
-    return(data_frame)
-}
-
 ui <- fluidPage(
     titlePanel("Genestack Study Viewer"),
     
@@ -154,17 +90,17 @@ server <- function(input, output, session) {
         # if the input isn't empty then continue as grep breaks if it tries to search for an empty string
         if (input$search != ""){
             # search through the data and formats it
-            transposed = search_json(input$search)
+            results = search_studies(input$search)
             
             # if the table isn't empty
-            if (nrow(transposed) != 0) {
+            if (nrow(results) != 0) {
                 # updates the store
-                global_store(transposed[1])
+                global_store(results[1])
                 # tells the table what to render and how
                 output$search_results = renderDataTable({
                     return(
                         datatable(
-                            transposed["Study_title"],
+                            results,
                             caption = "Search Results",
                             options = list(
                                 "searching" = FALSE,

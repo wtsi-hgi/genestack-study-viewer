@@ -17,6 +17,12 @@ format_json <- function(json_data) {
     return(transposed)
 }
 
+# Find a Study in the json_file using a Study Number
+find_study <- function(study_number, json_file) {
+    temp_json <- (json_file["data"][[1]][[as.integer(study_number)]])
+    return(format_json(temp_json))
+}
+
 genestack_api_call <- function(user, endpoint) {
     req <- GET(
         paste(

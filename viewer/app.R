@@ -10,35 +10,8 @@ source("helpers.R")
 
 httr::set_config(httr::config(http_version = 1))
 
-# empty list of studies that can be selected from, this is updated from the API call
-choices = list("Please select..." = 0)
-# a hash which contains the titles linked to their index
-title_to_index <- list()
-
-# API Call for all Studies Endpoint
-json_file <- genestack_api_call("studyUser", "studies")
-
-
-if (length(json_file) == 1){
-    print(json_file)
-    quit(status=1)
-}
-
-# separates the json file into its separate studies by assigning it a number based on its index
-for (i in 1:length(json_file["data"][[1]])){
-    choices[[format_title(json_file["data"][[1]][[i]])]] <- i
-    # fills in the index hash
-    title_to_index[[json_file["data"][[1]][[i]][["Study Title"]]]] <- i
-}
-
 # sets the default number of rows to 50 so that all of the data will be shown 
 options(DT.options = list(pageLength = 50))
-
-# TODO: Make this pure and move to helpers.R
-find_study <- function(study_number) {
-    temp_json <- (json_file["data"][[1]][[as.integer(study_number)]])
-    return(format_json(temp_json))
-}
 
 # search's a json file for selected word
 search_json <- function(searched_word){
@@ -113,7 +86,9 @@ ui <- fluidPage(
             selectInput(
                 inputId = "select",
                 label = "Projects",
-                choices,
+                choices = list(
+                    "Loading..." = 0
+                ),
                 selected = 0
             ),
             
@@ -145,6 +120,32 @@ ui <- fluidPage(
 server <- function(input, output, session) {
     # stores a copy of the table so it can be accessed later
     global_store <- reactiveVal(NULL)
+
+    # Get the latest API Data
+    select_choices <- list(
+        "Please select..." = 0
+    )
+    title_to_index <- list()
+    
+    api_data <- genestack_api_call("studyUser", "studies")
+    study_data <- api_data # Copy the data so it doesn't need to recall API
+
+    if (length(study_data) == 1) {
+        print(study_data)
+        quit(status = 1)
+    }
+
+    for (i in 1:length(study_data[["data"]])) {
+        select_choices[[format_title(study_data[["data"]][[i]])]] <- i
+        title_to_index[[study_data[["data"]][[i]][["Study Title"]]]] <- i
+    }
+
+    updateSelectInput(
+        session,
+        "select",
+        choices = select_choices
+    )
+
 
     add_data <- list()
     summary_table <- data.frame()
@@ -206,7 +207,7 @@ server <- function(input, output, session) {
         }
 
         # Transpose and put the key/value data into the UI table
-        transposed = find_study(input$select)
+        transposed = find_study(input$select, study_data)
         colnames(transposed) <- c("key","value")
         output$study_meta = renderDataTable({
             return(

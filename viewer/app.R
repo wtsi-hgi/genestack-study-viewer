@@ -252,23 +252,27 @@ server <- function(input, output, session) {
 
         # 4. Make the Nice Summary Table
         summary_table <<- data.frame(data_types, data_descrs, data_ids)
-        output$additional_summary = renderDataTable({
-            return(
-                datatable(
-                    # TODO - This throws an error if no data available - it shouldn't
-                    summary_table[1:2],
-                    caption = "Available Additional Data",
-                    options = list(
-                        "searching" = FALSE,
-                        "lengthChange" = FALSE,
-                        "paging" = FALSE
-                    ),
-                    selection = "single",
-                    rownames = FALSE,
-                    colnames = c("", "Description")
+
+        if (ncol(summary_table) != 0) {
+            output$additional_summary = renderDataTable({
+                return(
+                    datatable(
+                        summary_table[1:2],
+                        caption = "Available Additional Data",
+                        options = list(
+                            "searching" = FALSE,
+                            "lengthChange" = FALSE,
+                            "paging" = FALSE
+                        ),
+                        selection = "single",
+                        rownames = FALSE,
+                        colnames = c("", "Description")
+                    )
                 )
-            )
-        })
+            })
+        } else {
+            output$additional_summary = NULL
+        }
 
         # Hide the Old Additional Data
         output$additional_meta = NULL

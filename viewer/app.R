@@ -74,6 +74,8 @@ server <- function(input, output, session) {
     api_data <- genestack_api_call("studyUser", "studies")
     study_data <- api_data # Copy the data so it doesn't need to recall API
 
+    full_data <- list() # This is where we put all the extra info, for use by the search
+
     if (length(study_data) == 1) {
         print(study_data)
         quit(status = 1)
@@ -82,6 +84,7 @@ server <- function(input, output, session) {
     for (i in 1:length(study_data[["data"]])) {
         select_choices[[format_title(study_data[["data"]][[i]])]] <- i
         title_to_index[[study_data[["data"]][[i]][["Study Title"]]]] <- i
+        full_data[[study_data[["data"]][[i]][["Study Title"]]]] <- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
     }
 
     updateSelectInput(
@@ -96,7 +99,7 @@ server <- function(input, output, session) {
 
     observeEvent(input$search, {
         if (input$search != ""){
-            results = search_studies(input$search)
+            results = search_studies(input$search, full_data)
             if (nrow(results) != 0) {
                 global_store(results[1])
                 output$search_results = renderDataTable({

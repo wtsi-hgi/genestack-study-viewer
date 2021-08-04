@@ -62,25 +62,61 @@ get_study_additional_data <- function(study_id) {
     return(rtn_data)
 }
 
-search_studies <- function(query) {
+search_studies <- function(query, study_additional_data) {
+
+    studies = c()
+
+    # Firstly, straight up search Studies
     results <- genestack_api_call(
         "studyUser",
         paste(
             "studies?searchSpecificTerms=true&query=",
             query,
-            sep=""
+            sep = ""
         )
     )[["data"]]
 
-    titles <- c()
+    for (study in results) {
+        studies = append(studies, study[["Study Title"]])
+    }
 
-    for (result in results) {
-        titles <- append(titles, result[["Study Title"]])
+    # Next, search additional datasets
+
+    # Places to search - user:endpoint pairs 
+    endpoints <- list(
+        c("variantUser", "variant"),
+        c("expressionUser", "expression")
+    )
+
+    for (endpoint in endpoints) {
+        results <- genestack_api_call(
+            endpoint[1],
+            paste(
+                endpoint[2],
+                "?searchSpecificTerms=true&query=",
+                query,
+                sep = ""
+            )
+        )[["data"]]
+
+        # We now need to find what study/studies this is associated to
+        for (item in results){
+            itemId <- item[["itemId"]]
+            for (study in names(study_additional_data)) {
+                if (study == endpoint[2]) {
+                    for (data in study_additional_data[[study]]) {
+                        if (data[[itemId]] == itemId) {
+                            studies = append(studies, study)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return(
         data.frame(
-            titles
+            studies
         )
     )
 }

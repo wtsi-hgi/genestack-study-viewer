@@ -11,7 +11,14 @@ source("helpers.R")
 httr::set_config(httr::config(http_version = 1))
 
 # sets the default number of rows to 50 so that all of the data will be shown 
-options(DT.options = list(pageLength = 50))
+options(
+    DT.options = list(
+        pageLength = 50,
+        searching = FALSE,
+        lengthChange = FALSE,
+        paging = FALSE
+    )
+)
 
 ui <- fluidPage(
     titlePanel("Genestack Study Viewer"),
@@ -87,26 +94,16 @@ server <- function(input, output, session) {
     summary_table <- data.frame()
 
     observeEvent(input$search, {
-        # if the input isn't empty then continue as grep breaks if it tries to search for an empty string
         if (input$search != ""){
-            # search through the data and formats it
             results = search_studies(input$search)
-            
-            # if the table isn't empty
             if (nrow(results) != 0) {
-                # updates the store
                 global_store(results[1])
-                # tells the table what to render and how
                 output$search_results = renderDataTable({
                     return(
                         datatable(
                             results,
                             caption = "Search Results",
-                            options = list(
-                                "searching" = FALSE,
-                                "lengthChange" = FALSE,
-                                "paging" = FALSE
-                            ),
+
                             rownames = FALSE,
                             colnames = NULL,
                             selection = "single",
@@ -150,12 +147,7 @@ server <- function(input, output, session) {
                 datatable(
                     transposed,
                     caption = "Study Data",
-                    options = list(
-                        "searching" = FALSE,
-                        "lengthChange" = FALSE,
-                        "paging" = FALSE
-                    ),
-                    rownames = FALSE,
+                    
 
                     # This allows line breaks (<br>), but could allow XSS
                     # TODO: Better way of doing line breaks
@@ -196,11 +188,7 @@ server <- function(input, output, session) {
                     datatable(
                         summary_table[1:2],
                         caption = "Available Additional Data",
-                        options = list(
-                            "searching" = FALSE,
-                            "lengthChange" = FALSE,
-                            "paging" = FALSE
-                        ),
+
                         selection = "single",
                         rownames = FALSE,
                         colnames = c("", "Description")
@@ -234,11 +222,7 @@ server <- function(input, output, session) {
                 datatable(
                     requested_data,
                     caption = "Additional Data",
-                    options = list(
-                        "searching" = FALSE,
-                        "lengthChange" = FALSE,
-                        "paging" = FALSE
-                    ),
+
                     rownames = FALSE,
                     escape = FALSE # Same issue here as other places
                 )

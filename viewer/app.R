@@ -61,19 +61,16 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-    # stores a copy of the table so it can be accessed later
-    global_store <- reactiveVal(NULL)
-
     # Get the latest API Data
     select_choices <- list(
         "Please select..." = 0
     )
-    title_to_index <- list()
     
     api_data <- genestack_api_call("studyUser", "studies")
     study_data <- api_data # Copy the data so it doesn't need to recall API
 
     full_data <- list() # This is where we put all the extra info, for use by the search
+    study_indexes <- list()
 
     if (length(study_data) == 1) {
         print(study_data)
@@ -82,7 +79,7 @@ server <- function(input, output, session) {
 
     for (i in 1:length(study_data[["data"]])) {
         select_choices[[format_title(study_data[["data"]][[i]])]] <- i
-        title_to_index[[study_data[["data"]][[i]][["Study Title"]]]] <- i
+        study_indexes[[study_data[["data"]][[i]][["genestack:accession"]]]] <- i
         full_data[[study_data[["data"]][[i]][["genestack:accession"]]]] <- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
     }
 
@@ -95,16 +92,17 @@ server <- function(input, output, session) {
 
     add_data <- list()
     summary_table <- data.frame()
+    search_results_data <- list()
 
     observeEvent(input$search, {
         if (input$search != ""){
             results = accessions_to_titles(search_studies(input$search, full_data), study_data)
             if (nrow(results) != 0) {
-                global_store(results[1])
+                search_results_data <<- results
                 output$search_results = renderDataTable({
                     return(
                         datatable(
-                            results,
+                            results["titles"],
                             caption = "Search Results",
 
                             rownames = FALSE,
@@ -127,7 +125,8 @@ server <- function(input, output, session) {
     # runs whenever a row is clicked
     observeEvent(input$search_results_rows_selected, {
         clicked = input$search_results_rows_selected
-        index = (title_to_index[[global_store()[[1]][[clicked]]]])
+        acc = search_results_data[clicked,][["accessions"]]
+        index = study_indexes[[acc]]
 
         # updates the selection box to show the new choice
         updateSelectInput(

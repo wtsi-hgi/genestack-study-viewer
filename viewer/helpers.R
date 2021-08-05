@@ -17,7 +17,7 @@ accessions_to_titles <- function(accessions, study_data) {
             }
         }
     }
-    return(data.frame(titles))
+    return(data.frame(accessions, titles))
 }
 
 # Change list of key:value pairs (value can be any datatype) to dataframe

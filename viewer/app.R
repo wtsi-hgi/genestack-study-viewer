@@ -40,8 +40,7 @@ ui <- fluidPage(
                 label = "Search Metadata",
                 placeholder = NULL,
                 btnSearch = icon("search"),
-                btnReset = icon("remove"),
-                width = "450px"
+                btnReset = icon("remove")
             ),
 
             textOutput("no_results"),
@@ -170,7 +169,7 @@ server <- function(input, output, session) {
         study_id <- filter(transposed, key == "genestack:accession")[["value"]]
 
         # 2. Get the Additional Data
-        add_data <<- get_study_additional_data(study_id)
+        add_data <<- full_data[[study_id]]
 
         # 3. Summarise 
         data_types <- c()

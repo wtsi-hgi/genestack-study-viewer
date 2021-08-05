@@ -38,7 +38,7 @@ ui <- fluidPage(
             searchInput(
                 inputId = "search",
                 label = "Search Metadata",
-                placeholder = NULL,
+                placeholder = "add * for wildcard",
                 btnSearch = icon("search"),
                 btnReset = icon("remove")
             ),

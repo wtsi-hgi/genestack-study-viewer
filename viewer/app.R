@@ -56,7 +56,9 @@ ui <- fluidPage(
             dataTableOutput("additional_meta")
         )
 
-    )
+    ),
+
+    tags$head(tags$style("tbody {cursor: pointer;}"))
 )
 
 
@@ -96,6 +98,7 @@ server <- function(input, output, session) {
 
     observeEvent(input$search, {
         if (input$search != ""){
+            output$no_results = renderText({"Searching..."})
             results = accessions_to_titles(search_studies(input$search, full_data), study_data)
             if (nrow(results) != 0) {
                 search_results_data <<- results
@@ -103,7 +106,7 @@ server <- function(input, output, session) {
                     return(
                         datatable(
                             results["titles"],
-                            caption = "Search Results",
+                            caption = "Search Results (related studies)",
 
                             rownames = FALSE,
                             colnames = NULL,
@@ -122,6 +125,10 @@ server <- function(input, output, session) {
         }
     })
     
+    observeEvent(input$search_reset, {
+        output$search_results = NULL
+    })
+
     # runs whenever a row is clicked
     observeEvent(input$search_results_rows_selected, {
         clicked = input$search_results_rows_selected

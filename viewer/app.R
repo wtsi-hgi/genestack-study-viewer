@@ -98,30 +98,36 @@ server <- function(input, output, session) {
 
     observeEvent(input$search, {
         if (input$search != ""){
-            output$no_results = renderText({"Searching..."})
-            results = accessions_to_titles(search_studies(input$search, full_data), study_data)
-            if (nrow(results) != 0) {
-                search_results_data <<- results
-                output$search_results = renderDataTable({
-                    return(
-                        datatable(
-                            results["titles"],
-                            caption = "Search Results (related studies)",
+            withProgress(
+                message = "Searching...", 
+                min = 0,
+                max = 0,
+                {
+                    results = accessions_to_titles(search_studies(input$search, full_data), study_data)
+                    if (nrow(results) != 0) {
+                        search_results_data <<- results
+                        output$search_results = renderDataTable({
+                            return(
+                                datatable(
+                                    results["titles"],
+                                    caption = "Search Results (related studies)",
 
-                            rownames = FALSE,
-                            colnames = NULL,
-                            selection = "single",
+                                    rownames = FALSE,
+                                    colnames = NULL,
+                                    selection = "single",
 
-                            # TODO: See other escape TODO
-                            escape = FALSE
-                        )
-                    )
-                })
-                output$no_results = NULL
-            } else {
-                output$search_results = NULL
-                output$no_results = renderText({"No Search Results"})
-            }
+                                    # TODO: See other escape TODO
+                                    escape = FALSE
+                                )
+                            )
+                        })
+                        output$no_results = NULL
+                    } else {
+                        output$search_results = NULL
+                        output$no_results = renderText({"No Search Results"})
+                    }
+                }
+            )
         }
     })
     

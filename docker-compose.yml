@@ -4,4 +4,6 @@ services:
     studies-service:
         build: .
         ports: 
-            - 3838:3838  
+            - 3838:3838
+        env_file:
+            - .env

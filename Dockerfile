@@ -9,6 +9,6 @@ FROM rocker/shiny-verse:latest
 
  EXPOSE 3838
 
- CMD ["R","-e", "shiny::runApp('/app/shiny_save', host='0.0.0.0', port=3838)"]
+ CMD ["R","-e", "shiny::runApp('/app/shiny_save/viewer', host='0.0.0.0', port=3838)"]
 
 

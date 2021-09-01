@@ -4,7 +4,12 @@ library("tidyverse")
 httr::set_config(httr::config(http_version = 1))
 
 format_title <- function(study) {
-    return(paste(study["Study Title"], "-", study["genestack:accession"]))
+    if (is.null(study[["Study Title"]])) {
+        title = study[["Study Source"]]
+    } else {
+        title = study[["Study Title"]]
+    }
+    return(paste(title, "-", study["genestack:accession"]))
 }
 
 accessions_to_titles <- function(accessions, study_data) {
@@ -12,7 +17,12 @@ accessions_to_titles <- function(accessions, study_data) {
     for (accession in accessions) {
         for (study in study_data[["data"]]) {
             if (study[["genestack:accession"]] == accession) {
-                titles <- append(titles, study[["Study Title"]])
+                if (is.null(study[["Study Title"]])) {
+                    title = study[["Study Source"]]
+                } else {
+                    title = study[["Study Title"]]
+                }
+                titles <- append(titles, title)
                 break
             }
         }

@@ -192,7 +192,12 @@ server <- function(input, output, session) {
             if (is.list(add_data[type])) {
                 for (data_part in add_data[[type]]) {
                     data_types <- append(data_types, str_to_title(type))
-                    data_descrs <- append(data_descrs, data_part[["metadata"]][["Description"]])
+                    if (is.null(data_part[["metadata"]][["Description"]])) {
+                        description = ""
+                    } else {
+                        description = data_part[["metadata"]][["Description"]]
+                    }
+                    data_descrs <- append(data_descrs, description)
                     data_ids <- append(data_ids, data_part[["itemId"]])
                 }
             }

@@ -33,8 +33,8 @@ accessions_to_titles <- function(accessions, study_data) {
 # Change list of key:value pairs (value can be any datatype) to dataframe
 format_json <- function(json_data) {
     json_data_frame = map(json_data, ~ str_c(., collapse = "<br>")) %>% as_tibble
-    transposed = as_tibble(cbind(nms = names(json_data_frame), t(json_data_frame)))
-    
+    transposed = as_tibble(cbind(nms = names(json_data_frame), unname(as.list(json_data_frame[1,]))))
+
     # Remove Blank Values
     transposed <- transposed %>% filter(V2 != "")
     return(transposed)

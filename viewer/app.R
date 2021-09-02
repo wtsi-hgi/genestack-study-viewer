@@ -27,8 +27,7 @@ study_indexes <<- NULL
 select_choices <<- NULL
 
 loadGenestackData <- function() {
-    api_data <- genestack_api_call("studyUser", "studies")
-    study_data <<- api_data # Copy the data so it doesn't need to recall API
+    study_data <<- fromJSON(file = "../data/studies.json")
 
     full_data <<- list() # This is where we put all the extra info, for use by the search
     study_indexes <<- list()
@@ -46,7 +45,7 @@ loadGenestackData <- function() {
     for (i in 1:length(study_data[["data"]])) {
         select_choices[[format_title(study_data[["data"]][[i]])]] <<- i
         study_indexes[[study_data[["data"]][[i]][["genestack:accession"]]]] <<- i
-        full_data[[study_data[["data"]][[i]][["genestack:accession"]]]] <<- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
+        full_data[[study_data[["data"]][[i]][["genestack:accession"]]]] <<- fromJSON(file = paste("../data/", study_data[["data"]][[i]][["genestack:accession"]], ".json", sep=""))
     }
 }
 
@@ -146,7 +145,7 @@ server <- function(input, output, session) {
 
         # Deal with all the additonal study data
         # 1. Get the Study ID
-        study_id <- filter(transposed, key == "genestack:accession")[["value"]]
+        study_id <- unlist(filter(transposed, key == "genestack:accession")["value"])
 
         # 2. Get the Additional Data
         add_data <<- full_data[[study_id]]

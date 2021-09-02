@@ -7,6 +7,7 @@ library(httr)
 library(curl)
 
 source("helpers.R")
+source("ui.R")
 
 httr::set_config(httr::config(http_version = 1))
 
@@ -20,71 +21,38 @@ options(
     )
 )
 
-ui <- fluidPage(
-    titlePanel("Genestack Study Viewer"),
-    
-    sidebarLayout(
-        sidebarPanel(
-            # Inputs
-            selectInput(
-                inputId = "select",
-                label = "Projects",
-                choices = list(
-                    "Loading..." = 0
-                ),
-                selected = 0
-            ),
-            
-            searchInput(
-                inputId = "search",
-                label = "Search Metadata",
-                placeholder = "add * for wildcard",
-                btnSearch = icon("search"),
-                btnReset = icon("remove")
-            ),
+study_data <<- NULL
+full_data <<- NULL
+study_indexes <<- NULL
+select_choices <<- NULL
 
-            textOutput("no_results"),
-            dataTableOutput("search_results"),
-            br(),
-            dataTableOutput("additional_summary")
-        ),
-
-        mainPanel(
-            # Data Tables
-            dataTableOutput("study_meta"),
-            br(),
-            dataTableOutput("additional_meta")
-        )
-
-    ),
-
-    tags$head(tags$style("tbody {cursor: pointer;}"))
-)
-
-
-server <- function(input, output, session) {
-    # Get the latest API Data
-    select_choices <- list(
-        "Please select..." = 0
-    )
-    
+loadGenestackData <- function() {
     api_data <- genestack_api_call("studyUser", "studies")
-    study_data <- api_data # Copy the data so it doesn't need to recall API
+    study_data <<- api_data # Copy the data so it doesn't need to recall API
 
-    full_data <- list() # This is where we put all the extra info, for use by the search
-    study_indexes <- list()
+    full_data <<- list() # This is where we put all the extra info, for use by the search
+    study_indexes <<- list()
 
     if (length(study_data) == 1) {
         print(study_data)
         quit(status = 1)
     }
 
-    for (i in 1:length(study_data[["data"]])) {
-        select_choices[[format_title(study_data[["data"]][[i]])]] <- i
-        study_indexes[[study_data[["data"]][[i]][["genestack:accession"]]]] <- i
-        full_data[[study_data[["data"]][[i]][["genestack:accession"]]]] <- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
-    }
+    # Get the latest API Data
+    select_choices <<- list(
+        "Please select..." = 0
+    )
 
+    for (i in 1:length(study_data[["data"]])) {
+        select_choices[[format_title(study_data[["data"]][[i]])]] <<- i
+        study_indexes[[study_data[["data"]][[i]][["genestack:accession"]]]] <<- i
+        full_data[[study_data[["data"]][[i]][["genestack:accession"]]]] <<- get_study_additional_data(study_data[["data"]][[i]][["genestack:accession"]])
+    }
+}
+
+server <- function(input, output, session) {
+    loadGenestackData()
+    
     updateSelectInput(
         session,
         "select",
